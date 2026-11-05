@@ -1,0 +1,9 @@
+{
+  "name": "anolis-provider-template-cpp",
+  "version": "0.1.0",
+  "description": "Template for an Anolis device provider in C++",
+  "dependencies": [
+    "protobuf",
+    "yaml-cpp"
+  ]
+}

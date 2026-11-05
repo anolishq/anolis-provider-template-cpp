@@ -1,0 +1,114 @@
+name: CI
+
+# Self-contained: nothing here depends on anolishq's own workflows, actions or
+# secrets, so a provider started from this template builds and releases
+# anywhere. vcpkg comes from .github/actions/vcpkg in this repository.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HARNESS_WHEEL: "anolis-protocol[conformance] @ https://github.com/anolishq/anolis-protocol/releases/download/v1.10.0/anolis_protocol-1.10.0-py3-none-any.whl"
+
+jobs:
+  build:
+    name: Build and conformance (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build pkg-config
+      - uses: ./.github/actions/vcpkg
+      - name: Build
+        run: |
+          cmake --preset ci
+          cmake --build --preset ci --parallel
+      - name: Check --version
+        run: build/release/anolis-provider-template-cpp --version
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.13"
+      - name: Conformance
+        run: |
+          python -m pip install "$HARNESS_WHEEL"
+          python scripts/conformance.py build/release/anolis-provider-template-cpp
+
+  rename:
+    name: Rename still builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build pkg-config
+      - uses: ./.github/actions/vcpkg
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.13"
+      # What "Use this template" followed by `just rename` gives an author must
+      # still build and pass the harness.
+      - name: Rename to a new kind, build and run the harness
+        run: |
+          scripts/rename.sh renamed-check
+          cmake --preset ci
+          cmake --build --preset ci --parallel
+          python -m pip install "$HARNESS_WHEEL"
+          python scripts/conformance.py build/release/anolis-provider-renamed-check
+
+  format:
+    name: C++ formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.13"
+      - name: clang-format 18.1.8
+        run: |
+          python -m pip install clang-format==18.1.8
+          clang-format --dry-run --Werror src/*.cpp
+
+  docs:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: davidanson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25
+        with:
+          globs: "**/*.md"
+
+  ok:
+    name: ok
+    if: always()
+    needs: [build, rename, format, docs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Evaluate job results
+        run: |
+          echo "Job results: ${{ toJSON(needs.*.result) }}"
+      - name: Fail if any required job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

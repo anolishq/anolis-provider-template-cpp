@@ -1,0 +1,40 @@
+name: Set up vcpkg
+description: >
+  Clone vcpkg at the baseline vcpkg-configuration.json pins, bootstrap it, and
+  cache the binary packages it builds, so only the first run builds protobuf.
+  Local to this repository: CI and release depend on nothing outside it.
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the vcpkg baseline
+      id: baseline
+      shell: bash
+      run: |
+        set -euo pipefail
+        commit="$(jq -r '."default-registry".baseline' vcpkg-configuration.json)"
+        echo "commit=${commit}" >> "$GITHUB_OUTPUT"
+        # The image version is in the key because vcpkg's package hashes include
+        # the compiler: after a runner image update the old archives no longer
+        # match, and a key without it would never save the rebuilt ones.
+        echo "image=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ${{ github.workspace }}/.vcpkg-binary-cache
+        key: vcpkg-${{ runner.os }}-${{ runner.arch }}-img${{ steps.baseline.outputs.image }}-${{ steps.baseline.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-${{ runner.os }}-${{ runner.arch }}-img${{ steps.baseline.outputs.image }}-${{ steps.baseline.outputs.commit }}-
+
+    - name: Clone and bootstrap vcpkg
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="${{ github.workspace }}/.vcpkg"
+        git clone https://github.com/microsoft/vcpkg.git "$dir" --filter=blob:none --no-checkout
+        git -C "$dir" fetch origin "${{ steps.baseline.outputs.commit }}" --depth=1
+        git -C "$dir" checkout "${{ steps.baseline.outputs.commit }}"
+        "$dir/bootstrap-vcpkg.sh" -disableMetrics
+        mkdir -p "${{ github.workspace }}/.vcpkg-binary-cache"
+        echo "VCPKG_ROOT=$dir" >> "$GITHUB_ENV"
+        echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/.vcpkg-binary-cache,readwrite" >> "$GITHUB_ENV"

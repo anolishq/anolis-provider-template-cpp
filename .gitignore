@@ -1,0 +1,5 @@
+build/
+.harness/
+compile_commands.json
+.vcpkg/
+.vcpkg-binary-cache/
