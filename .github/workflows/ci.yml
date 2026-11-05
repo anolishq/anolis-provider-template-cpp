@@ -66,9 +66,13 @@ jobs:
         with:
           python-version: "3.13"
       # What "Use this template" followed by `just rename` gives an author must
-      # still build and pass the harness.
-      - name: Rename to a new kind, build and run the harness
+      # still build and pass the harness. It renames twice, because a provider
+      # made from the template runs this job on its own name: the script must
+      # rename from whatever the provider is called now, not only from the
+      # template.
+      - name: Rename to a new kind (twice), build and run the harness
         run: |
+          scripts/rename.sh renamed-once
           scripts/rename.sh renamed-check
           cmake --preset ci
           cmake --build --preset ci --parallel
