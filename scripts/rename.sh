@@ -5,7 +5,7 @@
 #
 # <kind> names the provider: the binary becomes anolis-provider-<kind>, which is
 # also what install.sh and machine profiles call it. It uses a-z, 0-9 and -,
-# starting with a letter. Every tracked file that names the template is
+# starting with a letter. Every tracked file that names the provider is
 # rewritten. Review the result with `git diff --stat` and commit it.
 set -euo pipefail
 
@@ -16,8 +16,15 @@ if ! [[ "$kind" =~ ^[a-z][a-z0-9-]*$ ]] || [[ "$kind" == *- ]]; then
 fi
 cd "$(git rev-parse --show-toplevel)"
 
-old_dash="anolis-provider-template-cpp"
-old_snake="anolis_provider_template_cpp"
+# The current name comes from vcpkg.json, not from this script, so the script
+# renames from whatever the provider is called now: the template's name the
+# first time, the provider's own name after that.
+old_dash="$(sed -n 's/^  "name": "\(anolis-provider-[a-z0-9-]*\)",$/\1/p' vcpkg.json | head -n 1)"
+if [ -z "$old_dash" ]; then
+  echo "vcpkg.json has no name of the form anolis-provider-<kind>" >&2
+  exit 2
+fi
+old_snake="${old_dash//-/_}"
 new_dash="anolis-provider-${kind}"
 new_snake="anolis_provider_${kind//-/_}"
 self="scripts/rename.sh"
