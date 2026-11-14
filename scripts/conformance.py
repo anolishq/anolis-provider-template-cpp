@@ -19,10 +19,7 @@ REPO = Path(__file__).resolve().parents[1]
 
 # A skip not listed here fails the run. List one only with the reason the
 # harness cannot exercise it on this provider.
-EXPECTED_SKIPS = {
-    "test_l2_expired_deadline_exceeded": "the C++ SDK does not support call deadlines yet (anolis-provider-sdk#71)",
-    "test_l2_malformed_deadline_is_invalid_argument": "the C++ SDK does not support call deadlines yet (anolis-provider-sdk#71)",
-}
+EXPECTED_SKIPS: dict[str, str] = {}
 
 
 def main() -> int:

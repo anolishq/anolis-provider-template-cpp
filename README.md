@@ -10,9 +10,7 @@ What it gives you, all passing in CI:
 
 - A provider that passes the
   [anolis-protocol](https://github.com/anolishq/anolis-protocol) conformance
-  harness at level 2. The only skips are the two call-deadline tests, until the
-  C++ SDK supports deadlines
-  ([anolis-provider-sdk#71](https://github.com/anolishq/anolis-provider-sdk/issues/71)).
+  harness at level 2, with no skips.
 - A statically linked binary for linux x86_64 and arm64, built with vcpkg.
 - A release workflow that publishes what
   [`install.sh`](https://github.com/anolishq/anolis/blob/main/docs/deploy/install-sh.md#what-a-provider-release-must-provide)
