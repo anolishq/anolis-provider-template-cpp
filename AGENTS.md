@@ -9,8 +9,7 @@ the build and release a provider needs.
 - `just build` (CMake preset `release`, vcpkg from `VCPKG_ROOT`), then `just test`, the conformance harness through
   `scripts/conformance.py`. CI builds with the `ci` preset (warnings as errors) on x86_64 and arm64.
 - The required CI status check is the **`ok`** job; never merge red.
-- `scripts/conformance.py` requires the harness to pass with no skips beyond `EXPECTED_SKIPS`: the two deadline tests,
-  until the C++ SDK supports deadlines (anolis-provider-sdk#71). Remove them from the list when it does.
+- `scripts/conformance.py` requires the harness to pass with no skips beyond `EXPECTED_SKIPS`, which is empty.
 - clang-format 18.1.8 (`.clang-format` is the SDK's). CI checks it.
 
 ## Rules
