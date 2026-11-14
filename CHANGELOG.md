@@ -14,3 +14,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A release workflow publishing what `install.sh` and the Workbench read, plus
   the tagged source for the ADPP compatibility matrix.
 - `scripts/rename.sh`, which renames the provider after "Use this template".
+
+### Fixed
+
+- `just test` found no harness: `scripts/conformance.py` ran the relative
+  harness path the recipe passes from a temporary directory (#7).

@@ -31,6 +31,8 @@ def main() -> int:
         return 2
     provider = str(Path(sys.argv[1]).resolve())
     harness = sys.argv[2] if len(sys.argv) == 3 else "anolis-adpp-conformance"
+    if "/" in harness:  # the harness runs in a temporary directory, so a relative path must be resolved here
+        harness = str(Path(harness).resolve())
     with tempfile.TemporaryDirectory() as tmp:
         report = Path(tmp) / "report.xml"
         proc = subprocess.run(
